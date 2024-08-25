@@ -6,6 +6,7 @@ import com.sushencev.tkvs.storage.InMemoryStorage
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNull
 
 class TransactionTest : BaseStorageTest<Transaction>(Transaction(InMemoryStorage()) {}) {
     @Test
@@ -138,5 +139,53 @@ class TransactionTest : BaseStorageTest<Transaction>(Transaction(InMemoryStorage
 
         // when, then
         assertEquals(3, sut.count(valueToCount))
+    }
+
+    @Test
+    fun `CRUD fails if nested transaction is in progress`() {
+        // given
+        sut.beginTransaction()
+
+        // when, then
+        assertFailsWith(IllegalStateException::class) {
+            sut["key"]
+        }
+    }
+
+    @Test
+    fun `beginning new transaction fails if nested transaction is already in progress`() {
+        // given
+        sut.beginTransaction()
+
+        // when, then
+        assertFailsWith(IllegalStateException::class) {
+            sut.beginTransaction()
+        }
+    }
+
+    @Test
+    fun `beginning new transaction works if previous nested transaction was committed`() {
+        // given
+        val nested = sut.beginTransaction()
+        nested["key"] = "value"
+        nested.commit()
+
+        // when, then
+        sut.beginTransaction() // no exception
+    }
+
+    @Test
+    fun `nested transaction commit modifies data in parent transaction`() {
+        // given
+        val nested = sut.beginTransaction()
+        val key = "key"
+        val value = "value"
+        nested[key] = value
+
+        // when
+        nested.commit()
+
+        // then
+        assertEquals(value, sut[key])
     }
 }

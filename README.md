@@ -23,6 +23,6 @@
 ## Backlog
  - [x] storage engine which can run "raw" commands and not thread-safe
  - [x] KVSBackend - main backend (utilises storage engine, responsible for txns, single-threaded for simplicity but thread-safe)
- - [ ] Nested transactions
+ - [x] Nested transactions
  - [ ] Console client - support all base commands
  - [ ] Console client - show alerts to confirm COMMIT, ROLLBACK or DELETE.

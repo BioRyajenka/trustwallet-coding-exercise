@@ -18,6 +18,7 @@ class Transaction internal constructor(
 
     private var aborted = false
     private var committed = false
+    private var awaitingNestedTransaction = false
 
     override fun set(key: String, value: String) {
         ensureTxnState()
@@ -42,7 +43,7 @@ class Transaction internal constructor(
     override fun count(value: String): Int {
         ensureTxnState()
         // allow phantom reads
-        return sourceStorage.count(value) + txnStorage.count(value) - cachedValuesStorage.count(value)
+        return countWithoutDuplicates(value)
     }
 
     fun commit() {
@@ -62,9 +63,40 @@ class Transaction internal constructor(
         aborted = true
     }
 
+    fun beginTransaction(): Transaction {
+        ensureNoNestedTransaction()
+        awaitingNestedTransaction = true
+
+        val sourceStorageForNested = object : IImmutableStorage {
+            override fun get(key: String) = txnStorage[key]
+            override fun count(value: String) = countWithoutDuplicates(value)
+        }
+
+        return Transaction(sourceStorageForNested) { modifications ->
+            awaitingNestedTransaction = false
+
+            modifications.forEach { (key, newValue, prevValue) ->
+                if (this[key] != prevValue) {
+                    throw AssertionError("It should not be possible to run nested transactions concurrently")
+                }
+
+                if (newValue == null) {
+                    this.delete(key)
+                } else {
+                    this[key] = newValue
+                }
+            }
+        }
+    }
+
     private fun ensureTxnState() {
         check(!aborted) { "Transaction is aborted" }
         check(!committed) { "Transaction is already committed" }
+        ensureNoNestedTransaction()
+    }
+
+    private fun ensureNoNestedTransaction() {
+        check(!awaitingNestedTransaction) { "Nested transaction is neither committed nor aborted" }
     }
 
     private fun ensureLoaded(key: String) {
@@ -78,4 +110,7 @@ class Transaction internal constructor(
             cachedValuesStorage[key] = prevValue
         }
     }
+
+    private fun countWithoutDuplicates(value: String) =
+        sourceStorage.count(value) + txnStorage.count(value) - cachedValuesStorage.count(value)
 }
