@@ -1,8 +1,10 @@
 package com.sushencev.tkvs.storage
 
-class InMemoryStorage: IStorage {
+class InMemoryStorage: IMutableStorage {
     private val data = mutableMapOf<String, String>()
     private val countByValue = mutableMapOf<String, Int>()
+
+    val entries: List<Pair<String, String>> get() = data.entries.map { it.key to it.value }
 
     override fun set(key: String, value: String) {
         data[key]?.let { prevValue ->
@@ -13,6 +15,7 @@ class InMemoryStorage: IStorage {
     }
 
     override fun get(key: String): String? = data[key]
+
     override fun delete(key: String): String? {
         return data.remove(key)?.also(::decreaseCount)
     }
