@@ -1,4 +1,6 @@
-package com.sushencev.tkvs
+package com.sushencev.common
+
+import com.sushencev.common.IConsole
 
 actual typealias Console = JvmConsole
 

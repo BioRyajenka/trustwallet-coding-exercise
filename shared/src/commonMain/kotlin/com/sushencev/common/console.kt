@@ -1,4 +1,4 @@
-package com.sushencev.tkvs
+package com.sushencev.common
 
 interface IConsole {
     fun println(message: String)

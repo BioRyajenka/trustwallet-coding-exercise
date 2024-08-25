@@ -1,5 +1,6 @@
-package com.sushencev.tkvs
+package com.sushencev.common
 
+import com.sushencev.common.IConsole
 import kotlinx.cinterop.ExperimentalForeignApi
 
 @OptIn(ExperimentalForeignApi::class)
