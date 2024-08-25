@@ -1,6 +1,6 @@
-package com.sushencev.common
+package com.sushencev.client
 
-import com.sushencev.common.IConsole
+import com.sushencev.client.IConsole
 import kotlinx.cinterop.ExperimentalForeignApi
 
 @OptIn(ExperimentalForeignApi::class)

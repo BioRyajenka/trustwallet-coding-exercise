@@ -1,7 +1,7 @@
 package com.sushencev.tkvs
 
 import com.sushencev.tkvs.storage.BaseStorageTest
-import common.MockStorage
+import util.MockStorage
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
