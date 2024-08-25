@@ -8,7 +8,7 @@ internal data class DataModification(val key: String, val newValue: String?, val
 
 class Transaction internal constructor(
     private val sourceStorage: IImmutableStorage,
-    private val onCommit: (modifications: List<DataModification>) -> Unit,
+    private val onCommit: suspend (modifications: List<DataModification>) -> Unit,
 ) : IMutableStorage {
     private val txnStorage = InMemoryStorage()
     private val cachedValuesStorage = InMemoryStorage()
@@ -46,7 +46,7 @@ class Transaction internal constructor(
         return countWithoutDuplicates(value)
     }
 
-    fun commit() {
+    suspend fun commit() {
         ensureTxnState()
 
         val modifications = txnStorage.entries.map { (key, value) ->

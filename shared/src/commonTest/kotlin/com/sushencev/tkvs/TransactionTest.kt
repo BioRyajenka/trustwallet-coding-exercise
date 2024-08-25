@@ -1,14 +1,13 @@
 package com.sushencev.tkvs
 
 import com.sushencev.tkvs.storage.BaseStorageTest
-import com.sushencev.tkvs.storage.IImmutableStorage
-import com.sushencev.tkvs.storage.InMemoryStorage
+import common.MockStorage
+import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertNull
 
-class TransactionTest : BaseStorageTest<Transaction>(Transaction(InMemoryStorage()) {}) {
+class TransactionTest : BaseStorageTest<Transaction>(Transaction(MockStorage()) {}) {
     @Test
     fun `set fails on aborted transaction`() {
         // given
@@ -54,19 +53,14 @@ class TransactionTest : BaseStorageTest<Transaction>(Transaction(InMemoryStorage
     }
 
     @Test
-    fun `commit summarizes changes correctly`() {
+    fun `commit summarizes changes correctly`() = runBlocking {
         // given
         lateinit var dataModifications: List<DataModification>
-        val sourceStorage = object : IImmutableStorage {
-            override fun get(key: String) = when (key) {
-                "key1" -> "prev value 1"
-                "key5" -> "prev value 5"
-                "key3" -> "prev value 3"
-                else -> null
-            }
-
-            override fun count(value: String) = TODO("Not yet implemented")
-        }
+        val sourceStorage = MockStorage(
+            "key1" to "prev value 1",
+            "key5" to "prev value 5",
+            "key3" to "prev value 3",
+        )
         val sut = Transaction(sourceStorage) {
             dataModifications = it
         }
@@ -98,13 +92,11 @@ class TransactionTest : BaseStorageTest<Transaction>(Transaction(InMemoryStorage
     fun `count works correctly if no data was modified`() {
         // given
         val valueToCount = "value"
-        val sourceStorage = object : IImmutableStorage {
-            override fun get(key: String) = TODO()
-
-            override fun count(value: String): Int {
-                return if (value == valueToCount) 3 else 0
-            }
-        }
+        val sourceStorage = MockStorage(
+            "key1" to valueToCount,
+            "key2" to valueToCount,
+            "key3" to valueToCount,
+        )
 
         val sut = Transaction(sourceStorage) {}
 
@@ -116,21 +108,14 @@ class TransactionTest : BaseStorageTest<Transaction>(Transaction(InMemoryStorage
     fun `count works correctly if data was modified`() {
         // given
         val valueToCount = "value"
-        val sourceStorage = object : IImmutableStorage {
-            override fun get(key: String) = when (key) {
-                "key1" -> valueToCount
-                "key2" -> valueToCount
-                "key3" -> valueToCount
-                "key4" -> valueToCount
-                else -> null
-            }
-
-            override fun count(value: String): Int {
-                return if (value == valueToCount) 4 else 0
-            }
-        }
-
+        val sourceStorage = MockStorage(
+            "key1" to valueToCount,
+            "key2" to valueToCount,
+            "key3" to valueToCount,
+            "key4" to valueToCount,
+        )
         val sut = Transaction(sourceStorage) {}
+
         sut["key1"] = "new value"
         sut.delete("key2")
         sut.delete("key3")
@@ -164,7 +149,7 @@ class TransactionTest : BaseStorageTest<Transaction>(Transaction(InMemoryStorage
     }
 
     @Test
-    fun `beginning new transaction works if previous nested transaction was committed`() {
+    fun `beginning new transaction works if previous nested transaction was committed`() = runBlocking {
         // given
         val nested = sut.beginTransaction()
         nested["key"] = "value"
@@ -175,7 +160,7 @@ class TransactionTest : BaseStorageTest<Transaction>(Transaction(InMemoryStorage
     }
 
     @Test
-    fun `nested transaction commit modifies data in parent transaction`() {
+    fun `nested transaction commit modifies data in parent transaction`() = runBlocking {
         // given
         val nested = sut.beginTransaction()
         val key = "key"
