@@ -3,11 +3,9 @@ package com.sushencev.tkvs
 import com.sushencev.tkvs.storage.BaseStorageTest
 import com.sushencev.tkvs.storage.IImmutableStorage
 import com.sushencev.tkvs.storage.InMemoryStorage
-import kotlin.math.exp
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.asserter
 
 class TransactionTest : BaseStorageTest<Transaction>(Transaction(InMemoryStorage()) {}) {
     @Test
@@ -93,5 +91,52 @@ class TransactionTest : BaseStorageTest<Transaction>(Transaction(InMemoryStorage
             ),
             actual = dataModifications,
         )
+    }
+
+    @Test
+    fun `count works correctly if no data was modified`() {
+        // given
+        val valueToCount = "value"
+        val sourceStorage = object : IImmutableStorage {
+            override fun get(key: String) = TODO()
+
+            override fun count(value: String): Int {
+                return if (value == valueToCount) 3 else 0
+            }
+        }
+
+        val sut = Transaction(sourceStorage) {}
+
+        // when, then
+        assertEquals(3, sut.count(valueToCount))
+    }
+
+    @Test
+    fun `count works correctly if data was modified`() {
+        // given
+        val valueToCount = "value"
+        val sourceStorage = object : IImmutableStorage {
+            override fun get(key: String) = when (key) {
+                "key1" -> valueToCount
+                "key2" -> valueToCount
+                "key3" -> valueToCount
+                "key4" -> valueToCount
+                else -> null
+            }
+
+            override fun count(value: String): Int {
+                return if (value == valueToCount) 4 else 0
+            }
+        }
+
+        val sut = Transaction(sourceStorage) {}
+        sut["key1"] = "new value"
+        sut.delete("key2")
+        sut.delete("key3")
+        sut["key3"] = valueToCount
+        sut["key5"] = valueToCount
+
+        // when, then
+        assertEquals(3, sut.count(valueToCount))
     }
 }

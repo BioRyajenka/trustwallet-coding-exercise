@@ -11,8 +11,11 @@ class Transaction internal constructor(
     private val onCommit: (modifications: List<DataModification>) -> Unit,
 ) : IMutableStorage {
     private val txnStorage = InMemoryStorage()
+    private val cachedValuesStorage = InMemoryStorage()
+
     private val prevValueByKey = mutableMapOf<String, String?>()
     private val deletedKeys = mutableSetOf<String>()
+
     private var aborted = false
     private var committed = false
 
@@ -39,7 +42,7 @@ class Transaction internal constructor(
     override fun count(value: String): Int {
         ensureTxnState()
         // allow phantom reads
-        return sourceStorage.count(value) + txnStorage.count(value)
+        return sourceStorage.count(value) + txnStorage.count(value) - cachedValuesStorage.count(value)
     }
 
     fun commit() {
@@ -72,6 +75,7 @@ class Transaction internal constructor(
         prevValueByKey[key] = prevValue
         if (prevValue != null) {
             txnStorage[key] = prevValue
+            cachedValuesStorage[key] = prevValue
         }
     }
 }
