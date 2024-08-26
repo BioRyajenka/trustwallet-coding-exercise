@@ -5,13 +5,13 @@ import com.sushencev.tkvs.storage.InMemoryStorage
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class KVSBackendParallelismTests {
     @Test
-    fun `beginTransaction works in parallel context`() = runBlocking {
+    fun `beginTransaction works in parallel context`() = runTest {
         val storage = InMemoryStorage()
         val backend = KVSBackend(storage)
 

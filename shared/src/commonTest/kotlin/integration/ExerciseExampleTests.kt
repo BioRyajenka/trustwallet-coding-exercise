@@ -4,15 +4,10 @@ import com.sushencev.client.CommandParser
 import com.sushencev.client.ConsoleClient
 import com.sushencev.tkvs.KVSBackend
 import com.sushencev.tkvs.storage.InMemoryStorage
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import util.MockConsole
 import kotlin.test.Test
-import kotlin.test.assertFalse
-import kotlin.time.Duration.Companion.seconds
 
 class ExerciseExampleTests {
     private val console = MockConsole()
@@ -21,7 +16,7 @@ class ExerciseExampleTests {
     private val client = ConsoleClient(console, parser, backend)
 
     @Test
-    fun `Set and get a value`() = runBlocking {
+    fun `Set and get a value`() = runTest {
         launch { client.run() }
 
         with(console) {
@@ -32,7 +27,7 @@ class ExerciseExampleTests {
     }
 
     @Test
-    fun `Count the number of occurrences of a value`() = runBlocking {
+    fun `Count the number of occurrences of a value`() = runTest {
         launch { client.run() }
 
         with(console) {
@@ -113,7 +108,7 @@ class ExerciseExampleTests {
         123
     """.trimIndent())
 
-    private fun verifyLog(log: String) = runBlocking {
+    private fun verifyLog(log: String) = runTest {
         launch { client.run() }
 
         val lines = log.split("\n").map { it.trim() } + listOf("> QUIT", ">")
