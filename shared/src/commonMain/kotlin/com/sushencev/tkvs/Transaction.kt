@@ -3,11 +3,14 @@ package com.sushencev.tkvs
 import com.sushencev.tkvs.storage.IImmutableStorage
 import com.sushencev.tkvs.storage.IMutableStorage
 import com.sushencev.tkvs.storage.InMemoryStorage
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 
 internal data class DataModification(val key: String, val newValue: String?, val previousValue: String?)
 
 class Transaction internal constructor(
     private val sourceStorage: IImmutableStorage,
+    private val onAbort: () -> Unit = {},
     private val onCommit: suspend (modifications: List<DataModification>) -> Unit,
 ) : IMutableStorage {
     private val txnStorage = InMemoryStorage()
@@ -54,12 +57,18 @@ class Transaction internal constructor(
         } + deletedKeys.map { key ->
             DataModification(key, newValue = null, previousValue = prevValueByKey[key])
         }
-        onCommit(modifications)
+        try {
+            onCommit(modifications)
+        } catch (exception: Exception) {
+            aborted = true
+            throw exception
+        }
 
         committed = true
     }
 
     fun abort() {
+        onAbort()
         aborted = true
     }
 
@@ -72,21 +81,24 @@ class Transaction internal constructor(
             override fun count(value: String) = countWithoutDuplicates(value)
         }
 
-        return Transaction(sourceStorageForNested) { modifications ->
-            awaitingNestedTransaction = false
+        return Transaction(sourceStorageForNested,
+            onCommit = { modifications ->
+                awaitingNestedTransaction = false
 
-            modifications.forEach { (key, newValue, prevValue) ->
-                if (this[key] != prevValue) {
-                    throw AssertionError("It should not be possible to run nested transactions concurrently")
-                }
+                modifications.forEach { (key, newValue, prevValue) ->
+                    if (this[key] != prevValue) {
+                        throw AssertionError("It should not be possible to run nested transactions concurrently")
+                    }
 
-                if (newValue == null) {
-                    this.delete(key)
-                } else {
-                    this[key] = newValue
+                    if (newValue == null) {
+                        this.delete(key)
+                    } else {
+                        this[key] = newValue
+                    }
                 }
-            }
-        }
+            },
+            onAbort = { awaitingNestedTransaction = false }
+        )
     }
 
     private fun ensureTxnState() {
@@ -100,7 +112,7 @@ class Transaction internal constructor(
     }
 
     private fun ensureLoaded(key: String) {
-        if (txnStorage[key] != null) {
+        if (cachedValuesStorage[key] != null) {
             return
         }
         val prevValue = sourceStorage[key]

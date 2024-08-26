@@ -21,5 +21,5 @@ rootProject.name = "transactional_kvs"
 
 include(":shared")
 include(":jvm_app")
-include(":console_app")
+include(":native_app")
 

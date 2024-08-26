@@ -10,4 +10,9 @@ class JvmConsole : IConsole {
     override fun errorPrintln(message: String) {
         System.err.println(message)
     }
+
+    override fun readln(): String {
+        print("> ")
+        return checkNotNull(readlnOrNull())
+    }
 }

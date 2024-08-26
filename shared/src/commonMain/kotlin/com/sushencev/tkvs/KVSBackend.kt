@@ -4,13 +4,13 @@ import com.sushencev.tkvs.storage.IMutableStorage
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 
-class OptimisticLockingException: Exception(
+class OptimisticLockingException : Exception(
     "Some data modified in this transaction was also modified in other transaction. Retry."
 )
 
 @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
 class KVSBackend(private val storage: IMutableStorage) {
-    private val modificationsChannel = Channel<List<DataModification>>()
+    private val modificationsChannel = Channel<Pair<List<DataModification>, CompletableDeferred<Unit>>>()
 
     private val singleThreadContext = newSingleThreadContext("CommitThread")
     private val scope = CoroutineScope(singleThreadContext)
@@ -19,8 +19,13 @@ class KVSBackend(private val storage: IMutableStorage) {
 
     init {
         scope.launch {
-            for (modifications in modificationsChannel) {
-                applyModifications(modifications)
+            for ((modifications, deferred) in modificationsChannel) {
+                try {
+                    applyModifications(modifications)
+                    deferred.complete(Unit)
+                } catch (e: OptimisticLockingException) {
+                    deferred.completeExceptionally(e)
+                }
             }
         }
     }
@@ -35,9 +40,14 @@ class KVSBackend(private val storage: IMutableStorage) {
     suspend fun beginTransaction(): Transaction {
         check(!stopped) { "KVSBackend is stopped!" }
 
-        return Transaction(storage) { modifications ->
-            modificationsChannel.send(modifications)
-        }
+        return Transaction(storage,
+            onCommit = { modifications ->
+                val deferred = CompletableDeferred<Unit>()
+                modificationsChannel.send(modifications to deferred)
+                deferred.await()
+            },
+            onAbort = {}
+        )
     }
 
     private fun applyModifications(modifications: List<DataModification>) {

@@ -1,7 +1,8 @@
 package com.sushencev.client
 
-class UnknownCommandException(val command: String): Exception("Unknown command \"$command\"")
-class WrongAmountOfArguments(val command: String, val expected: Int): Exception("Wrong amount of arguments for command \"$command\". $expected expected")
+abstract class ParsingException(message: String): Exception(message)
+class UnknownCommandException(val command: String): ParsingException("Unknown command \"$command\"")
+class WrongAmountOfArguments(val command: String, val expected: Int): ParsingException("Wrong amount of arguments for command \"$command\". $expected expected")
 
 class CommandParser {
     private val COMMANDS_AND_ARGUMENTS = mapOf(
@@ -12,9 +13,10 @@ class CommandParser {
         "BEGIN" to 0,
         "COMMIT" to 0,
         "ROLLBACK" to 0,
+        "QUIT" to 0,
     )
 
-    fun parse(line: String): Command {
+    fun parse(line: String): ConsoleCommand {
         val tokens = line.trim().split(" ")
         val command = tokens[0].uppercase()
         val argsNum = COMMANDS_AND_ARGUMENTS[command]
@@ -25,13 +27,14 @@ class CommandParser {
         }
 
         return when (command) {
-            "SET" -> Command.SET(args[0], args[1])
-            "GET" -> Command.GET(args[0])
-            "DELETE" -> Command.DELETE(args[0])
-            "COUNT" -> Command.COUNT(args[0])
-            "BEGIN" -> Command.BEGIN_TRANSACTION
-            "COMMIT" -> Command.COMMIT_TRANSACTION
-            "ROLLBACK" -> Command.ROLLBACK_TRANSACTION
+            "SET" -> ConsoleCommand.SET(args[0], args[1])
+            "GET" -> ConsoleCommand.GET(args[0])
+            "DELETE" -> ConsoleCommand.DELETE(args[0])
+            "COUNT" -> ConsoleCommand.COUNT(args[0])
+            "BEGIN" -> ConsoleCommand.BEGIN_TRANSACTION
+            "COMMIT" -> ConsoleCommand.COMMIT_TRANSACTION
+            "ROLLBACK" -> ConsoleCommand.ROLLBACK_TRANSACTION
+            "QUIT" -> ConsoleCommand.QUIT
             else -> throw AssertionError()
         }
     }

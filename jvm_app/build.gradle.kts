@@ -32,3 +32,11 @@ kotlin {
         val jvmTest by getting
     }
 }
+
+tasks.register<JavaExec>("runJvmApp") {
+    mainClass.set("com.sushencev.tkvs.MainKt")
+    classpath = sourceSets["main"].runtimeClasspath
+    standardInput = System.`in`
+
+    dependsOn("build")
+}

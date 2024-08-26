@@ -9,7 +9,7 @@ import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class KVSBackendTest {
+class KVSBackendParallelismTests {
     @Test
     fun `beginTransaction works in parallel context`() = runBlocking {
         val storage = InMemoryStorage()

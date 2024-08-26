@@ -10,6 +10,9 @@ kotlin {
         it.binaries  {
             executable("console_app") {
                 entryPoint = "com.sushencev.tkvs.main"
+                runTask?.standardInput = System.`in`
+                runTask?.standardOutput = System.out
+                runTask?.errorOutput = System.err
             }
         }
     }
