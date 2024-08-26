@@ -56,7 +56,7 @@ class ConsoleClient(
         }
     }
 
-    private suspend fun runInTransaction(run: Transaction.() -> Unit) {
+    private suspend fun runInTransaction(run: suspend Transaction.() -> Unit) {
         if (curTransaction != null) {
             run(curTransaction!!)
         } else {
