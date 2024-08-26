@@ -11,5 +11,5 @@ fun main() = runBlocking {
     val parser = CommandParser()
     val backend = KVSBackend(InMemoryStorage())
 
-    ConsoleClient(console, parser, backend).run()
+    ConsoleClient(console, parser, backend, alertConfirmationsEnabled = true).run()
 }

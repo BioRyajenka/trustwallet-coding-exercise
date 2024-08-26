@@ -25,4 +25,4 @@
  - [x] KVSBackend - main backend (utilises storage engine, responsible for txns, single-threaded for simplicity but thread-safe)
  - [x] Nested transactions
  - [x] Console client - support all base commands
- - [ ] Console client - show alerts to confirm COMMIT, ROLLBACK or DELETE.
+ - [x] Console client - show alerts to confirm COMMIT, ROLLBACK or DELETE.

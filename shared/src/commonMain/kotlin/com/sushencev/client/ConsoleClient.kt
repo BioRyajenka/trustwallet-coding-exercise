@@ -11,6 +11,7 @@ class ConsoleClient(
     private val console: IConsole,
     private val parser: CommandParser,
     private val backend: KVSBackend,
+    private val alertConfirmationsEnabled: Boolean = false,
 ) {
     private val transactionStack = mutableListOf<Transaction>()
     private val curTransaction get() = transactionStack.lastOrNull()
@@ -18,8 +19,13 @@ class ConsoleClient(
     suspend fun run() {
         while (true) {
             try {
-                val line = console.readln()
-                when (val cmd = parser.parse(line)) {
+                val cmd = parser.parse(console.readln())
+                if (alertConfirmationsEnabled && cmd.needsConfirmation) {
+                    if (!confirmCommand()) {
+                        continue
+                    }
+                }
+                when (cmd) {
                     ConsoleCommand.QUIT -> break
                     is ConsoleCommand.SET -> runInTransaction { set(cmd.key, cmd.value) }
                     is ConsoleCommand.GET -> runInTransaction {
@@ -32,11 +38,20 @@ class ConsoleClient(
                     ConsoleCommand.ROLLBACK_TRANSACTION -> commitOrRollbackTransaction { abort() }
                 }
             } catch (e: OptimisticLockingException) {
-                console.errorPrintln(e.message!!)
+                console.println(e.message!!)
             } catch (e: ParsingException) {
-                console.errorPrintln(e.message!!)
+                console.println(e.message!!)
             }
         }
+    }
+
+    private suspend fun confirmCommand(): Boolean {
+        var response: String
+        do {
+            console.println("Are you sure? (yes/no)")
+            response = console.readln()
+        } while (response !in listOf("yes", "no"))
+        return response == "yes"
     }
 
     private suspend fun beginTransaction() {
